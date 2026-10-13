@@ -50,7 +50,6 @@ class HousePreprocessor(BaseEstimator, TransformerMixin):
         return np.array(list(self.num_cols) + [f'{c}={cat}' for c in self.cat_cols for cat in self.categories_[c]])
 
 
-# ---------------------------------------------------------------- tạo đặc trưng
 def make_kw_vectorizer():
     return CountVectorizer(vocabulary=list(KEYWORDS), ngram_range=(1, 3), binary=True,
                            token_pattern=r'(?u)\b\w+\b')
@@ -66,7 +65,7 @@ def add_features(d, kw_vectorizer):
     return d
 
 
-# ---------------------------------------------------------------- phát hiện bất thường (như notebook)
+
 def tra_nhom(frame, tables):
     res = pd.DataFrame(np.nan, index=frame.index, columns=['q1', 'q3', 'p10', 'p90', 'median'])
     nhom = pd.Series(None, index=frame.index, dtype=object)
