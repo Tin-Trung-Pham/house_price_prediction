@@ -22,7 +22,7 @@ st.set_page_config(page_title='Dự đoán giá nhà – Nhà Tốt', page_icon=
 
 TEAM_NAME = 'Nhóm 2'
 TEAM_COURSE = 'Đồ án tốt nghiệp Data Science – TTTH ĐH KHTN TP.HCM'
-# Nguồn: file phan_cong_cong_viec.xlsx (sheet Project_1)
+
 TEAM_MEMBERS = [
     {'name': 'Phạm Trung Tín', 'tool': 'Python',
      'tasks': ['Data Cleaning', 'Khám phá dữ liệu', 'Model, Machine Learning, Evaluation trên Python',
