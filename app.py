@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""GUI Streamlit v2: Dự đoán giá nhà & Phát hiện giá rao bất thường (dữ liệu Nhà Tốt: Bình Thạnh, Gò Vấp, Phú Nhuận).
 
-Chạy:  streamlit run app.py
-Thay đổi so với v1: upload CSV dự đoán hàng loạt, upload CSV phát hiện bất thường hàng loạt,
-bố cục mới (thẻ KPI, biểu đồ), bỏ phần "Mô hình sử dụng", thêm phần "Về Nhà Tốt".
-"""
 import io
 from pathlib import Path
 import warnings
@@ -24,9 +19,7 @@ from house_utils import (load_artifact, dinh_gia_va_kiem_tra, chuan_hoa_csv, du_
 
 st.set_page_config(page_title='Dự đoán giá nhà – Nhà Tốt', page_icon='🏠', layout='wide')
 
-# =====================================================================
-# 👉 SỬA THÔNG TIN NHÓM Ở ĐÂY
-# =====================================================================
+
 TEAM_NAME = 'Nhóm 2'
 TEAM_COURSE = 'Đồ án tốt nghiệp Data Science – TTTH ĐH KHTN TP.HCM'
 # Nguồn: file phan_cong_cong_viec.xlsx (sheet Project_1)
@@ -40,10 +33,7 @@ TEAM_MEMBERS = [
 ]
 INSTRUCTOR = 'Cô Khuất Thuỳ Phương'
 
-# =====================================================================
-# Màu sắc (theo bảng màu đã kiểm định của skill dataviz)
-# =====================================================================
-QUAN_COLOR = {'Bình Thạnh': '#2a78d6', 'Gò Vấp': '#eb6834', 'Phú Nhuận': '#1baf7a'}   # thứ tự cố định
+QUAN_COLOR = {'Bình Thạnh': '#2a78d6', 'Gò Vấp': '#eb6834', 'Phú Nhuận': '#1baf7a'}   
 LABEL_COLOR = {'Giá quá thấp': '#2a78d6', 'Bình thường': '#c3c2b7', 'Giá quá cao': '#e34948'}
 INK, MUTED, GRID = '#0b0b0b', '#898781', '#e1e0d9'
 
@@ -74,9 +64,6 @@ def tag(label):
     return f'<span class="tag {cls}">{icon} {label}</span>'
 
 
-# =====================================================================
-# Nạp model & đọc file (cache)
-# =====================================================================
 @st.cache_resource(show_spinner='Đang nạp mô hình...')
 def get_model():
     app_dir = Path(__file__).resolve().parent
@@ -104,9 +91,6 @@ def to_csv_bytes(df):
     return df.to_csv(index_label='dong_trong_file', encoding='utf-8-sig').encode('utf-8-sig')
 
 
-# =====================================================================
-# Biểu đồ (matplotlib, nét mảnh, lưới nhạt)
-# =====================================================================
 def _style(ax):
     for s in ['top', 'right']:
         ax.spines[s].set_visible(False)
@@ -137,21 +121,21 @@ def bang_tin_hieu(r, cfg):
     cl, dg = r['chenh_lech_%'], r['don_gia']
     p10, p90, mn, mx = r['don_gia_P10'], r['don_gia_P90'], r['don_gia_min'], r['don_gia_max']
 
-    # 1) Lệch giá dự đoán: S = min(|z|, 3) / 3  ->  |z| < 1: đạt, < 2: cảnh báo, còn lại: bất thường
+    # 1) Lệch giá dự đoán
     s = sig['S_resid']
     kq1 = '✅ Đạt' if s < 1 / 3 else ('⚠️ Cảnh báo' if s < 2 / 3 else '🚩 Bất thường')
     mo1 = ('Giá rao gần bằng giá dự đoán' if abs(cl) < 1
            else f'Giá rao {"cao" if cl > 0 else "thấp"} hơn giá dự đoán {abs(cl):.0f}%')
-    # 2) Khung giá sàn/trần của nhóm (0 hoặc 1)
+    # 2) Khung giá 
     kq2 = '✅ Đạt' if sig['S_minmax'] == 0 else '🚩 Bất thường'
     mo2 = (f'Đơn giá {dg:.0f} tr/m² nằm trong khung {mn:.0f}–{mx:.0f} tr/m²' if sig['S_minmax'] == 0
            else f'Đơn giá {dg:.0f} tr/m² {"dưới sàn" if dg < mn else "vượt trần"} của khung {mn:.0f}–{mx:.0f} tr/m²')
-    # 3) Vùng P10–P90 của nhóm
+    # 3) Vùng P10–P90 
     s = sig['S_pct']
     kq3 = '✅ Đạt' if s == 0 else ('⚠️ Cảnh báo' if s < 0.3 else '🚩 Bất thường')
     mo3 = (f'Đơn giá nằm trong vùng phổ biến {p10:.0f}–{p90:.0f} tr/m²' if s == 0
            else f'Đơn giá {"thấp hơn" if dg < p10 else "cao hơn"} vùng phổ biến {p10:.0f}–{p90:.0f} tr/m²')
-    # 4) Isolation Forest: so với ngưỡng 95% của dữ liệu huấn luyện
+    # 4) Isolation Forest
     hiem = sig['S_if'] >= cfg['if_q95']
     kq4 = '⚠️ Cảnh báo' if hiem else '✅ Đạt'
     mo4 = 'Tổ hợp đặc điểm hiếm gặp (thuộc 5% lạ nhất)' if hiem else 'Đặc điểm căn nhà phổ biến trong dữ liệu'
@@ -220,9 +204,7 @@ def plot_anomaly_overview(res, cutoff):
     return fig
 
 
-# =====================================================================
-# Form nhập 1 căn (dùng chung)
-# =====================================================================
+
 def house_form(key, cats, wards, with_price=False):
     quan = st.selectbox('📍 Quận', sorted(cats['quan']), key=f'{key}_quan')   # ngoài form để danh sách phường đổi theo quận
     with st.form(f'{key}_form', border=True):
@@ -258,9 +240,7 @@ def house_form(key, cats, wards, with_price=False):
     return submitted, house, gia_rao
 
 
-# =====================================================================
-# Khối upload CSV dùng chung
-# =====================================================================
+
 def upload_block(key, co_gia):
     with st.expander('📄 Định dạng file CSV được chấp nhận & file mẫu', expanded=False):
         st.markdown(f"""
@@ -290,9 +270,7 @@ def show_prep_report(loai, canh_bao, bi_loai, n_total, n_ok):
                 st.download_button('⬇️ Tải danh sách dòng bị loại', to_csv_bytes(bi_loai), 'dong_bi_loai.csv', 'text/csv')
 
 
-# =====================================================================
-# TRANG 1: GIỚI THIỆU (dự án + Nhà Tốt + nhóm)
-# =====================================================================
+
 def page_intro():
     hero('🏠 Dự đoán giá nhà & Phát hiện giá rao bất thường',
          f'Dữ liệu tin đăng Nhà Tốt · Bình Thạnh, Gò Vấp, Phú Nhuận (TP.HCM) · {TEAM_COURSE}')
@@ -373,9 +351,7 @@ gắn nhãn <i>Giá quá thấp / Bình thường / Giá quá cao</i> kèm lý d
         st.caption('Sửa biến TEAM_NAME, TEAM_MEMBERS, INSTRUCTOR ở đầu file app.py để cập nhật.')
 
 
-# =====================================================================
-# TRANG 2: DỰ ĐOÁN GIÁ (1 căn | CSV không giá)
-# =====================================================================
+
 def page_predict(art, vec, cats, wards):
     hero('💰 Dự đoán giá nhà', 'Định giá 1 căn hoặc cả danh sách căn từ file CSV (không cần cột giá)')
     tab1, tab2 = st.tabs(['🏠 Nhập 1 căn', '📂 Upload CSV nhiều căn'])
@@ -437,9 +413,7 @@ def page_predict(art, vec, cats, wards):
                                type='primary')
 
 
-# =====================================================================
-# TRANG 3: PHÁT HIỆN GIÁ BẤT THƯỜNG (1 tin | CSV có giá)
-# =====================================================================
+
 def page_anomaly(art, vec, cats, wards):
     hero('🚩 Phát hiện giá rao bất thường', 'So sánh giá rao với giá thị trường – kiểm tra 1 tin hoặc cả file CSV có giá')
     cutoff = art['anomaly_cfg']['cutoff']
@@ -518,9 +492,7 @@ def page_anomaly(art, vec, cats, wards):
                                'danh_sach_bat_thuong.csv', 'text/csv', width='stretch')
 
 
-# =====================================================================
-# MAIN: menu ở sidebar
-# =====================================================================
+
 art, vec = get_model()
 cats, wards = get_options(art)
 
