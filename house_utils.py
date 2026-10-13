@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Các hàm/lớp copy từ notebook Du_doan_gia_nha_v5.ipynb để GUI nạp được model đã lưu.
 
-Lưu ý: model được pickle khi các lớp nằm trong notebook (module __main__), nên khi nạp
-phải "ánh xạ" __main__ -> module này (xem load_artifact).
-"""
 import io
 import pickle
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.preprocessing import StandardScaler          # noqa: F401 (cfg chứa scaler)
-from sklearn.ensemble import IsolationForest              # noqa: F401 (cfg chứa iforest)
+from sklearn.preprocessing import StandardScaler          
+from sklearn.ensemble import IsolationForest              
 
-# ---------------------------------------------------------------- hằng số
+
 NUM_RAW = ['dien_tich', 'dien_tich_su_dung', 'chieu_ngang', 'chieu_dai',
            'so_phong_ngu', 'so_phong_ve_sinh', 'tong_so_tang']
 KEYWORDS = {'mặt tiền': 'tu_mat_tien', 'hẻm xe hơi': 'tu_hem_xe_hoi', 'ô tô': 'tu_o_to', 'hxh': 'tu_hxh',
@@ -30,7 +26,7 @@ TOP_K, HARD_MIN, HARD_MAX, MIN_GROUP = 0.05, 20, 800, 20
 LEVELS = [['phuong', 'loai_hinh'], ['quan', 'loai_hinh'], ['quan']]
 
 
-# ---------------------------------------------------------------- lớp tiền xử lý (như notebook)
+
 class HousePreprocessor(BaseEstimator, TransformerMixin):
     def __init__(self, num_cols=None, cat_cols=None, top_n=30):
         self.num_cols = num_cols
@@ -121,7 +117,7 @@ def cham_diem(frame, pred_log, cfg, gan_co=True):
     return out
 
 
-# ---------------------------------------------------------------- nạp model đã pickle từ notebook
+
 class _NotebookUnpickler(pickle.Unpickler):
     """Pickle trong notebook ghi lớp ở module __main__ -> trỏ về module này."""
     def find_class(self, module, name):
@@ -169,13 +165,7 @@ def dinh_gia_va_kiem_tra(house, art, kw_vectorizer, gia_rao=None):
     return out
 
 
-# =====================================================================
-# XỬ LÝ FILE CSV HÀNG LOẠT (GUI v2)
-# Hỗ trợ 2 định dạng:
-#   (1) File gốc Nhà Tốt (cột dia_chi, gia_ban "7,5 tỷ", dien_tich "45 m²", mo_ta, bieu_do_gia...)
-#   (2) Template sạch: đúng tên cột của model, số ở dạng số, giá (nếu có) đơn vị tỷ VNĐ
-# Các hàm parse_* copy từ notebook (mục 2–3.1)
-# =====================================================================
+
 import re
 import ast
 
@@ -186,7 +176,7 @@ TEMPLATE_COLS = ['quan', 'phuong', 'loai_hinh', 'dien_tich', 'dien_tich_su_dung'
 
 
 def parse_price_ty(s):
-    # "7,5 tỷ" -> 7.5 ; "820 triệu" -> 0.82
+    
     if pd.isna(s):
         return np.nan
     s = str(s).strip().replace('.', '').replace(',', '.')
@@ -198,7 +188,7 @@ def parse_price_ty(s):
 
 
 def parse_number(s):
-    # "36 m²" -> 36 ; "4.5 m" -> 4.5 ; "3 phòng" -> 3 ; "nhiều hơn 10 phòng" -> 11
+    
     if pd.isna(s):
         return np.nan
     if isinstance(s, (int, float, np.number)):
@@ -212,7 +202,7 @@ def parse_number(s):
 
 
 def parse_chart(s):
-    # "[134.04, 125.8, ...]" -> list số ; "[]" -> None
+    
     try:
         v = ast.literal_eval(str(s))
         return [float(x) for x in v] if isinstance(v, list) and len(v) else None
@@ -223,7 +213,7 @@ def parse_chart(s):
 def lay_phuong(addr):
     if pd.isna(addr) or not str(addr).strip():
         return np.nan
-    s = re.sub(r'\s*\(.*\)\s*$', '', str(addr))           # bỏ phần "(Phường mới...)" sau sáp nhập
+    s = re.sub(r'\s*\(.*\)\s*$', '', str(addr))           
     for p in [x.strip() for x in s.split(',')]:
         if p.startswith('Phường'):
             return p
@@ -232,7 +222,7 @@ def lay_phuong(addr):
 
 def lay_quan(addr):
     s = str(addr)
-    for q in QUAN_LIST:                      # ưu tiên dạng "Quận Gò Vấp"
+    for q in QUAN_LIST:                      
         if f'Quận {q}' in s:
             return q
     for q in QUAN_LIST:
@@ -287,7 +277,7 @@ def chuan_hoa_csv(df_in):
         d[c] = raw[c].fillna('Không rõ') if c in raw else 'Không rõ'
         d[c] = d[c].replace('', 'Không rõ')
 
-    # Giá trị vô lý ở một thuộc tính -> NaN (giống notebook mục 3.2)
+    
     vo_ly = {'tong_so_tang': 10, 'chieu_ngang': 50, 'chieu_dai': 100, 'dien_tich_su_dung': 3000}
     n_vo_ly = 0
     for c, mx in vo_ly.items():
@@ -299,7 +289,7 @@ def chuan_hoa_csv(df_in):
     if n_no_chart:
         canh_bao.append(f'{n_no_chart} dòng không có chỉ số giá khu vực (bieu_do_gia) → điền median của tập train.')
 
-    # Dòng không dự đoán được -> loại, ghi lý do
+    
     ly_do = pd.Series('', index=d.index)
     ly_do[~d['quan'].isin(QUAN_LIST)] += 'quận ngoài phạm vi model (chỉ Bình Thạnh, Gò Vấp, Phú Nhuận); '
     ly_do[~(d['dien_tich'] > 0)] += 'thiếu/sai diện tích; '
