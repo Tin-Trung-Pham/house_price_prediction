@@ -30,10 +30,10 @@ TEAM_NAME = 'Nhóm 2'
 TEAM_COURSE = 'Đồ án tốt nghiệp Data Science – TTTH ĐH KHTN TP.HCM'
 # Nguồn: file phan_cong_cong_viec.xlsx (sheet Project_1)
 TEAM_MEMBERS = [
-    {'name': 'Phạm Trung Tín', 'tool': 'Python', 'email': 'bagolti@gmail.com',
+    {'name': 'Phạm Trung Tín', 'tool': 'Python', 'email': 'bagolti@yahoo.com',
      'tasks': ['Data Cleaning', 'Khám phá dữ liệu', 'Model, Machine Learning, Evaluation trên Python',
                'File thuyết trình, README, PowerPoint']},
-    {'name': 'Đinh Trí Dũng', 'tool': 'PySpark', 'email': 'email.cua.dung@gmail.com',  # TODO: cập nhật email thật
+    {'name': 'Đinh Trí Dũng', 'tool': 'PySpark', 'email': 'dungbluehn@gmail.com',
      'tasks': ['Data Cleaning', 'Khám phá dữ liệu', 'Model, Machine Learning, Evaluation trên PySpark',
                'File thuyết trình, README, PowerPoint']},
 ]
