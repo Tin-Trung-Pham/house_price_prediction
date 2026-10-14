@@ -5,9 +5,19 @@ Chạy:  streamlit run app.py
 Thay đổi so với v2: giao diện mới (xanh dương - tím), mục Nhóm thực hiện (kèm email) chuyển xuống dưới menu.
 """
 import io
+import sys
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
+
+if __name__ == '__main__':
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+    # Nút Run Python File cần khởi động server trước khi dựng giao diện.
+    if get_script_run_ctx(suppress_warning=True) is None:
+        from streamlit.web import cli
+
+        raise SystemExit(cli.main(args=['run', str(Path(__file__).resolve()), *sys.argv[1:]]))
 
 import numpy as np
 import pandas as pd
@@ -18,7 +28,7 @@ import streamlit as st
 APP_DIR = Path(__file__).resolve().parent
 IMG_PATH = APP_DIR / 'nhatot.jpg'
 
-from house_utils import (load_artifact, dinh_gia_va_kiem_tra, chuan_hoa_csv, du_doan_hang_loat,
+from house_utils import (get_preprocessor, load_artifact, dinh_gia_va_kiem_tra, chuan_hoa_csv, du_doan_hang_loat,
                          phat_hien_hang_loat, tao_template)
 
 st.set_page_config(page_title='Dự đoán giá nhà – Nhà Tốt', page_icon='🏠', layout='wide')
@@ -134,7 +144,7 @@ def get_model():
 
 
 def get_options(art):
-    cats = art['model'].named_steps['prep'].categories_
+    cats = get_preprocessor(art['model']).categories_
     wards = {q: sorted((p for p in cats['phuong'] if p.startswith(q + ' - ')),
                        key=lambda p: int(''.join(ch for ch in p if ch.isdigit()) or 0)) for q in cats['quan']}
     return cats, wards
