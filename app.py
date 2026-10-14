@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""GUI Streamlit v2: Dự đoán giá nhà & Phát hiện giá rao bất thường (dữ liệu Nhà Tốt: Bình Thạnh, Gò Vấp, Phú Nhuận).
+"""GUI Streamlit v3: Dự đoán giá nhà & Phát hiện giá rao bất thường (dữ liệu Nhà Tốt: Bình Thạnh, Gò Vấp, Phú Nhuận).
 
 Chạy:  streamlit run app.py
-Thay đổi so với v1: upload CSV dự đoán hàng loạt, upload CSV phát hiện bất thường hàng loạt,
-bố cục mới (thẻ KPI, biểu đồ), bỏ phần "Mô hình sử dụng", thêm phần "Về Nhà Tốt".
+Thay đổi so với v2: giao diện mới (xanh dương - tím), mục Nhóm thực hiện (kèm email) chuyển xuống dưới menu.
 """
 import io
 from pathlib import Path
@@ -31,10 +30,10 @@ TEAM_NAME = 'Nhóm 2'
 TEAM_COURSE = 'Đồ án tốt nghiệp Data Science – TTTH ĐH KHTN TP.HCM'
 # Nguồn: file phan_cong_cong_viec.xlsx (sheet Project_1)
 TEAM_MEMBERS = [
-    {'name': 'Phạm Trung Tín', 'tool': 'Python',
+    {'name': 'Phạm Trung Tín', 'tool': 'Python', 'email': 'bagolti@gmail.com',
      'tasks': ['Data Cleaning', 'Khám phá dữ liệu', 'Model, Machine Learning, Evaluation trên Python',
                'File thuyết trình, README, PowerPoint']},
-    {'name': 'Đinh Trí Dũng', 'tool': 'PySpark',
+    {'name': 'Đinh Trí Dũng', 'tool': 'PySpark', 'email': 'email.cua.dung@gmail.com',  # TODO: cập nhật email thật
      'tasks': ['Data Cleaning', 'Khám phá dữ liệu', 'Model, Machine Learning, Evaluation trên PySpark',
                'File thuyết trình, README, PowerPoint']},
 ]
@@ -49,23 +48,74 @@ INK, MUTED, GRID = '#0b0b0b', '#898781', '#e1e0d9'
 
 CSS = """
 <style>
-.hero {background: linear-gradient(90deg, #ffba00 0%, #ff8a00 100%); padding: 22px 28px; border-radius: 14px; margin-bottom: 18px;}
-.hero h1 {color: #1a1a19; margin: 0; font-size: 2.0rem;}
-.hero p  {color: #1a1a19; margin: 6px 0 0 0; font-size: 1.02rem;}
-.card {background: #ffffff; border: 1px solid #e1e0d9; border-radius: 12px; padding: 16px 18px; height: 100%;}
-.card h4 {margin: 0 0 6px 0;}
-.tag {display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 0.95rem;}
+:root {--p1:#3b5bdb; --p2:#7048e8; --ink:#1e1b4b; --soft:#eef2ff; --line:#e0e7ff;}
+.stApp {background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 320px);}
+.block-container {padding-top: 1.6rem; padding-bottom: 2rem;}
+/* Hero */
+.hero {position: relative; overflow: hidden; background: linear-gradient(120deg, #3b5bdb 0%, #5f3dc4 55%, #7048e8 100%);
+       padding: 28px 32px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 10px 28px rgba(59,91,219,.28);}
+.hero:before {content:''; position:absolute; right:-60px; top:-70px; width:240px; height:240px; border-radius:50%; background: rgba(255,255,255,.10);}
+.hero:after  {content:''; position:absolute; right:110px; bottom:-90px; width:190px; height:190px; border-radius:50%; background: rgba(255,255,255,.07);}
+.hero h1 {color: #ffffff; margin: 0; font-size: 2.05rem; font-weight: 800; letter-spacing: -.3px; position: relative;}
+.hero p  {color: #dbe4ff; margin: 8px 0 0 0; font-size: 1.02rem; position: relative;}
+.hero .chips {margin-top: 14px; position: relative;}
+.hero .chip {display:inline-block; background: rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.28);
+             padding: 3px 12px; border-radius: 999px; font-size: .85rem; margin: 0 8px 4px 0;}
+/* Card */
+.card {background: #ffffff; border: 1px solid var(--line); border-left: 4px solid var(--p1); border-radius: 14px; padding: 16px 18px; height: 100%;
+       box-shadow: 0 2px 10px rgba(30,27,75,.06); transition: transform .18s ease, box-shadow .18s ease;}
+.card:hover {transform: translateY(-3px); box-shadow: 0 10px 24px rgba(59,91,219,.16);}
+.card h4 {margin: 0 0 6px 0; color: var(--ink);}
+/* Tag */
+.tag {display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.95rem;}
 .tag-ok   {background: #e8f5e8; color: #006300;}
 .tag-low  {background: #e6f0fb; color: #184f95;}
 .tag-high {background: #fdeaea; color: #a32525;}
-div[data-testid="stMetric"] {background: #ffffff; border: 1px solid #e1e0d9; border-radius: 12px; padding: 12px 16px;}
+/* Metric */
+div[data-testid="stMetric"] {background: #ffffff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px;
+       box-shadow: 0 2px 10px rgba(30,27,75,.06); border-top: 3px solid var(--p2);}
+div[data-testid="stMetric"] label {color: #5c5f7a !important;}
+div[data-testid="stMetricValue"] {color: var(--ink); font-weight: 800;}
+/* Tabs */
+button[data-baseweb="tab"] {font-weight: 600; padding: 10px 18px;}
+button[data-baseweb="tab"][aria-selected="true"] {color: var(--p1);}
+div[data-baseweb="tab-highlight"] {background: linear-gradient(90deg, var(--p1), var(--p2)) !important; height: 3px;}
+/* Buttons */
+.stButton > button, .stFormSubmitButton > button, .stDownloadButton > button {border-radius: 10px; font-weight: 600; transition: all .15s ease;}
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"], .stDownloadButton > button[kind="primary"] {
+       background: linear-gradient(90deg, var(--p1), var(--p2)); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59,91,219,.30);}
+.stButton > button:hover, .stFormSubmitButton > button:hover, .stDownloadButton > button:hover {transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,91,219,.25);}
+/* Headings, uploader, expander */
+h3, h4 {color: var(--ink);}
+div[data-testid="stFileUploader"] section {border: 2px dashed #a5b4fc; background: #f8f9ff; border-radius: 14px;}
+div[data-testid="stExpander"] {border: 1px solid var(--line); border-radius: 12px; background: #fff;}
+div[data-testid="stDataFrame"] {border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(30,27,75,.06);}
+/* Sidebar tối */
+section[data-testid="stSidebar"] {background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);}
+section[data-testid="stSidebar"] * {color: #e0e7ff;}
+section[data-testid="stSidebar"] img {border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.35);}
+section[data-testid="stSidebar"] hr {border-color: rgba(255,255,255,.18);}
+section[data-testid="stSidebar"] div[role="radiogroup"] label {background: rgba(255,255,255,.06); border-radius: 10px; padding: 8px 12px; margin-bottom: 6px;
+       transition: background .15s ease;}
+section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {background: rgba(255,255,255,.16);}
+section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {background: linear-gradient(90deg, #4c6ef5, #845ef7);}
+.team-box {background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; padding: 12px 14px; margin-top: 4px; font-size: .86rem; line-height: 1.5;}
+.team-box .tb-title {font-weight: 800; font-size: 1rem; color: #ffffff;}
+.team-box .tb-sub {color: #c7d2fe; font-size: .8rem;}
+.team-box .tb-mem {margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.14);}
+.team-box .tb-mem b {color: #ffffff;}
+.team-box a {color: #a5d8ff !important; text-decoration: none;}
+.team-box a:hover {text-decoration: underline;}
+.footer {text-align: center; color: #7b7f9e; font-size: .82rem; margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
 
-def hero(title, subtitle):
-    st.markdown(f'<div class="hero"><h1>{title}</h1><p>{subtitle}</p></div>', unsafe_allow_html=True)
+def hero(title, subtitle, chips=()):
+    chip_html = ''.join(f'<span class="chip">{c}</span>' for c in chips)
+    st.markdown(f'<div class="hero"><h1>{title}</h1><p>{subtitle}</p>'
+                f'<div class="chips">{chip_html}</div></div>', unsafe_allow_html=True)
 
 
 def tag(label):
@@ -295,8 +345,9 @@ def show_prep_report(loai, canh_bao, bi_loai, n_total, n_ok):
 # =====================================================================
 def page_intro():
     hero('🏠 Dự đoán giá nhà & Phát hiện giá rao bất thường',
-         f'Dữ liệu tin đăng Nhà Tốt · Bình Thạnh, Gò Vấp, Phú Nhuận (TP.HCM) · {TEAM_COURSE}')
-    tab1, tab2, tab3 = st.tabs(['📌 Giới thiệu dự án', '🏢 Về Nhà Tốt', '👥 Nhóm thực hiện'])
+         f'Dữ liệu tin đăng Nhà Tốt · Bình Thạnh, Gò Vấp, Phú Nhuận (TP.HCM) · {TEAM_COURSE}',
+         chips=['🤖 Random Forest', '🚩 Isolation Forest', '📤 Upload CSV hàng loạt', '📊 Streamlit'])
+    tab1, tab2 = st.tabs(['📌 Giới thiệu dự án', '🏢 Về Nhà Tốt'])
 
     with tab1:
         c1, c2, c3, c4 = st.columns(4)
@@ -361,16 +412,6 @@ gắn nhãn <i>Giá quá thấp / Bình thường / Giá quá cao</i> kèm lý d
             st.link_button('🌐 Truy cập nhatot.com', 'https://www.nhatot.com', width='stretch')
         st.caption('Nguồn: trang chủ nhatot.com và trang giới thiệu dịch vụ Nhà Tốt trên chotot.com (tra cứu 10/2026). '
                    'Các con số là số liệu do Nhà Tốt tự công bố.')
-
-    with tab3:
-        st.markdown(f'### {TEAM_NAME}')
-        st.write(f'**Chương trình:** {TEAM_COURSE}  \n**Giảng viên hướng dẫn:** {INSTRUCTOR}')
-        cols = st.columns(len(TEAM_MEMBERS))
-        for col, m in zip(cols, TEAM_MEMBERS):
-            tasks = ''.join(f'<li>{t}</li>' for t in m['tasks'])
-            col.markdown(f"""<div class="card"><h4>👤 {m['name']}</h4>
-<b>Phụ trách:</b> {m['tool']}<br><b>Công việc:</b><ul style="margin:4px 0 0 0;">{tasks}</ul></div>""", unsafe_allow_html=True)
-        st.caption('Sửa biến TEAM_NAME, TEAM_MEMBERS, INSTRUCTOR ở đầu file app.py để cập nhật.')
 
 
 # =====================================================================
@@ -524,13 +565,23 @@ def page_anomaly(art, vec, cats, wards):
 art, vec = get_model()
 cats, wards = get_options(art)
 
+def team_box():
+    members = ''.join(
+        f'<div class="tb-mem"><b>👤 {m["name"]}</b><br>{m["tool"]}<br>'
+        f'✉️ <a href="mailto:{m["email"]}">{m["email"]}</a></div>' for m in TEAM_MEMBERS)
+    st.markdown(f'''<div class="team-box"><div class="tb-title">👥 {TEAM_NAME}</div>
+<div class="tb-sub">{TEAM_COURSE}</div>
+<div class="tb-sub">Giảng viên hướng dẫn: <b>{INSTRUCTOR}</b></div>{members}</div>''', unsafe_allow_html=True)
+
+
 with st.sidebar:
     st.image(str(IMG_PATH), width='stretch')
     st.markdown('## Menu')
     menu = st.radio('Chọn trang', ['🏠 Giới thiệu', '💰 Dự đoán giá nhà', '🚩 Phát hiện giá bất thường'],
                     label_visibility='collapsed')
     st.divider()
-    st.caption(f'{TEAM_NAME}\n\n{TEAM_COURSE}')
+    st.markdown('### 👥 Nhóm thực hiện')
+    team_box()
 
 if menu.endswith('Giới thiệu'):
     page_intro()
@@ -538,3 +589,5 @@ elif menu.endswith('Dự đoán giá nhà'):
     page_predict(art, vec, cats, wards)
 else:
     page_anomaly(art, vec, cats, wards)
+
+st.markdown(f'<div class="footer">🏠 {TEAM_NAME} · {TEAM_COURSE} · Dữ liệu: tin đăng Nhà Tốt</div>', unsafe_allow_html=True)
